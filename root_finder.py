@@ -124,7 +124,7 @@ class NewtonRaphson(MetodoNumericoAbierto):
 
     @ByZero
     def resolver(self):
-        if not callable(self.f) and callable(self._df):
+        if not (callable(self.f) and callable(self._df)):
             message = 'f and df must be callables'
             raise ValueError(message)
 
@@ -172,8 +172,9 @@ if __name__ == '__main__':
     def df_func2(x):
         return 2*(x-4)
 
+
     xlower = -10
-    x_initial = 4
+    x_initial = 2
     xupper = 0
 
     root_func = Biseccion(func, xlower, xupper)
