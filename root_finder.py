@@ -29,15 +29,19 @@ def Bolzano(method): #AL ser un método es mejor usar method como nombre. Ahora 
         return method(self, *args)
     return wrapper
 
+def ByZero(method):
+    def wrapper(self, *args):
+        if np.allclose(self._df(self.xi), 0, atol = 1e-12):
+            message = f'The derivative in {self.xi} tends to 0'
+            raise ZeroDivisionError(message)
+        return method(self, *args)
+    return wrapper
+        
 
-# def logger(method):
-#     def wrapper(self, *args):
-#         print(f'La cantidad de iteraciones fueron {self.iter} con un error de {self.es}')
-#         return method(self, *args)
-#     return wrapper
+
 
 #Clase abstracta
-class MetodoNumerico(ABC):
+class MetodoNumericoCerrado(ABC):
 
     @abstractmethod
     def __init__(self, f : Callable, xl, xu):
@@ -49,10 +53,22 @@ class MetodoNumerico(ABC):
     @abstractmethod
     def resolver(self):...
 
+class MetodoNumericoAbierto(ABC):
+
+    @abstractmethod
+    def __init__(self, f : Callable, xi):
+        self.f = f
+        self.xi = xi
+        
+    
+    @abstractmethod
+    def resolver(self):...
+
 
 #Mi método de raíces
-class Biseccion(MetodoNumerico):
+class Biseccion(MetodoNumericoCerrado):
     es = None
+    max_iter = 100
 
     def __init__(self, f, xl, xu):
         super().__init__(f, xl, xu)
@@ -73,10 +89,9 @@ class Biseccion(MetodoNumerico):
         iter = 0
         xr = self.xu
         ea = 100
-        max_iter = 100
 
         while self.es <= ea:
-            if iter >= max_iter:
+            if iter >= self.max_iter:
                 cause = RuntimeWarning('max iter reached')
                 success = False
                 return OptimizeResult(xr = xr, success = success, i = iter, ea = ea, message = cause)
@@ -99,14 +114,47 @@ class Biseccion(MetodoNumerico):
                         ea = ea)
 
 
-class NR(MetodoNumerico):
+class NewtonRaphson(MetodoNumericoAbierto):
     es = None
+    max_iter = 100
 
-    def __init__(self, f, xl, xu):
-        super().__init__(f, xl, xu)
+    def __init__(self, f, xi, df : Callable) -> None:
+        super().__init__(f, xi)
+        self._df = df
 
+    @ByZero
     def resolver(self):
-        pass
+        if not callable(self.f) and callable(self._df):
+            message = 'f and df must be callables'
+            raise ValueError(message)
+
+        if self.es is None:
+            self.es = 1e-8
+        else:
+            self.es = self.es
+
+        success = True
+        iter = 0
+        ea = 100 
+
+        while self.es <= ea:
+            if iter >= self.max_iter:
+                cause = RuntimeWarning('max iter reached')
+                success = False
+                return OptimizeResult(xr = xr, success = success, i = iter, ea = ea, message = cause)
+            xr = self.xi - self.f(self.xi)/self._df(self.xi)
+            if xr != 0:
+                ea = np.abs((xr - self.xi)/xr)*100
+            iter += 1
+            self.xi = xr
+
+        return OptimizeResult(xr = xr,
+                        success = success,
+                        i = iter,
+                        ea = ea)
+        
+
+
 
 
 
@@ -114,12 +162,21 @@ if __name__ == '__main__':
 
     def func(x):
         return -np.pi + np.exp(-0.14586*x) 
+    
+    def df_func(x):
+        return -0.14586*np.exp(-0.14586*x)
+
+    def func2(x):
+        return (x-4)**2 - 2
+    
+    def df_func2(x):
+        return 2*(x-4)
 
     xlower = -10
+    x_initial = 4
     xupper = 0
 
-    
-
     root_func = Biseccion(func, xlower, xupper)
-    root_func.es = 1e-9
-    print(root_func.resolver())
+    root_func_NR = NewtonRaphson(func2, x_initial, df=df_func2)
+    print('Método de bisección: \n', root_func.resolver())
+    print('Método de Newton-Raphson: \n', root_func_NR.resolver())
