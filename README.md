@@ -1,1 +1,0 @@
-# Numeric-Methods-in-Python

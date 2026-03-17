@@ -99,6 +99,16 @@ class Biseccion(MetodoNumerico):
                         ea = ea)
 
 
+class NR(MetodoNumerico):
+    es = None
+
+    def __init__(self, f, xl, xu):
+        super().__init__(f, xl, xu)
+
+    def resolver(self):
+        pass
+
+
 
 if __name__ == '__main__':
 
