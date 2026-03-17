@@ -10,19 +10,13 @@ from abc import ABC, abstractmethod
 
 #Decoradores para mi clase
 
-# def Bolzano(func):
-#     def wrapper(f, xl, xu, *args):
-#         if f(xl)*f(xu) > 0:
-#             message = f'There is not a change of sign between {xl} and {xu}'
-#             raise ValueError(message)
-#         return func(f, xl, xu, *args)
-#     return wrapper
-
-#Debe ser más conveniente este
-def Bolzano(method): #AL ser un método es mejor usar method como nombre. Ahora este decorador es universal
-    #Al usar self ya puedo entrar a todas las instancias de mi clase
+def Bolzano(method): 
     def wrapper(self, *args):
-        # Aquí validas usando self.f, self.xl, etc.
+        f = self.f
+        if not callable(f):
+            message = 'f must be a Callable'
+            raise ValueError(message)
+
         if np.sign(self.f(self.xl)) == np.sign(self.f(self.xu)):
             message = f'There is not a change of sign between {self.xl} and {self.xu}'
             raise ValueError(message)
@@ -31,6 +25,11 @@ def Bolzano(method): #AL ser un método es mejor usar method como nombre. Ahora 
 
 def ByZero(method):
     def wrapper(self, *args):
+        f = self.f
+        df = self._df
+        if not (callable(f) and callable(df)):
+            message = 'f and df must be callables'
+            raise ValueError(message)
         if np.allclose(self._df(self.xi), 0, atol = 1e-12):
             message = f'The derivative in {self.xi} tends to 0'
             raise ZeroDivisionError(message)
@@ -75,11 +74,6 @@ class Biseccion(MetodoNumericoCerrado):
 
     @Bolzano
     def resolver(self):
-        if not callable(self.f):
-            message = 'f must be a Callable'
-            raise ValueError(message)
-    
-
         if self.es is None:
             self.es = 1e-8
         else:
@@ -124,9 +118,6 @@ class NewtonRaphson(MetodoNumericoAbierto):
 
     @ByZero
     def resolver(self):
-        if not (callable(self.f) and callable(self._df)):
-            message = 'f and df must be callables'
-            raise ValueError(message)
 
         if self.es is None:
             self.es = 1e-8
@@ -171,7 +162,6 @@ if __name__ == '__main__':
     
     def df_func2(x):
         return 2*(x-4)
-
 
     xlower = -10
     x_initial = 2
